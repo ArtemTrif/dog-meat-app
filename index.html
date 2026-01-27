@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мясо для собак</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f4f4f4;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #2ea6ff;
+      color: white;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🐶 Магазин мяса</h2>
+
+<div class="card">
+  <h3>Говядина</h3>
+  <p>500 ₽ / кг</p>
+  <button onclick="add('Говядина', 500)">Добавить</button>
+</div>
+
+<div class="card">
+  <h3>Печень</h3>
+  <p>180 ₽ / кг</p>
+  <button onclick="add('Печень', 180)">Добавить</button>
+</div>
+
+<button onclick="sendOrder()">✅ Оформить заказ</button>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  let cart = [];
+
+  tg.expand();
+
+  function add(name, price) {
+    cart.push({ name, price });
+    tg.showAlert(name + " добавлено");
+  }
+
+  function sendOrder() {
+    if (cart.length === 0) {
+      tg.showAlert("Корзина пуста");
+      return;
+    }
+    tg.sendData(JSON.stringify(cart));
+  }
+</script>
+
+</body>
+</html>
