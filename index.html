@@ -11,7 +11,7 @@
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
       background: #f2f2f7;
-      padding-bottom: 90px;
+      padding-bottom: 120px;
     }
 
     header {
@@ -23,7 +23,6 @@
     .products {
       padding: 16px;
       display: grid;
-      grid-template-columns: 1fr;
       gap: 16px;
     }
 
@@ -50,17 +49,36 @@
     }
 
     .price {
-      margin: 8px 0;
+      margin: 6px 0;
       color: #666;
     }
 
-    .add-btn {
-      width: 100%;
-      padding: 10px;
+    .qty {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .qty button {
+      width: 36px;
+      height: 36px;
       border: none;
+      border-radius: 8px;
+      background: #e5e5ea;
+      font-size: 20px;
+    }
+
+    .form {
+      padding: 16px;
+    }
+
+    .form input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
       border-radius: 10px;
-      background: #2ea6ff;
-      color: #fff;
+      border: 1px solid #ccc;
       font-size: 15px;
     }
 
@@ -70,7 +88,7 @@
       left: 0;
       right: 0;
       background: #fff;
-      padding: 12px;
+      padding: 14px;
       box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
     }
 
@@ -89,59 +107,98 @@
 
 <header>🐶 Магазин мяса</header>
 
-<div class="products">
+<div class="products" id="products"></div>
 
-  <div class="card">
-    <img src="https://i.imgur.com/8Q1ZQZQ.jpg">
-    <div class="card-content">
-      <div class="title">Говядина</div>
-      <div class="price">500 ₽ / кг</div>
-      <button class="add-btn" onclick="add('Говядина', 500)">Добавить</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <img src="https://i.imgur.com/F7yFQpP.jpg">
-    <div class="card-content">
-      <div class="title">Сердце</div>
-      <div class="price">300 ₽ / кг</div>
-      <button class="add-btn" onclick="add('Сердце', 300)">Добавить</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <img src="https://i.imgur.com/HRn6Fz5.jpg">
-    <div class="card-content">
-      <div class="title">Печень</div>
-      <div class="price">180 ₽ / кг</div>
-      <button class="add-btn" onclick="add('Печень', 180)">Добавить</button>
-    </div>
-  </div>
-
+<div class="form">
+  <input id="phone" placeholder="📞 Телефон">
+  <input id="address" placeholder="📍 Адрес доставки">
 </div>
 
 <div class="checkout">
-  <button onclick="checkout()">✅ Оформить заказ</button>
+  <button onclick="checkout()">✅ Оформить заказ (<span id="total">0</span> ₽)</button>
 </div>
 
 <script>
   const tg = window.Telegram.WebApp;
   tg.expand();
 
-  let cart = [];
+  const items = [
+    { id: "beef", name: "Говядина", price: 500, img: "https://i.imgur.com/8Q1ZQZQ.jpg" },
+    { id: "heart", name: "Сердце", price: 300, img: "https://i.imgur.com/F7yFQpP.jpg" },
+    { id: "liver", name: "Печень", price: 180, img: "https://i.imgur.com/HRn6Fz5.jpg" }
+  ];
 
-  function add(name, price) {
-    cart.push({ name, price });
-    tg.showAlert(name + " добавлено в корзину");
+  const cart = {};
+
+  function render() {
+    const root = document.getElementById("products");
+    root.innerHTML = "";
+
+    items.forEach(item => {
+      const qty = cart[item.id] || 0;
+
+      root.innerHTML += `
+        <div class="card">
+          <img src="${item.img}">
+          <div class="card-content">
+            <div class="title">${item.name}</div>
+            <div class="price">${item.price} ₽ / кг</div>
+            <div class="qty">
+              <button onclick="change('${item.id}', -1)">−</button>
+              <strong>${qty} кг</strong>
+              <button onclick="change('${item.id}', 1)">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById("total").innerText = total();
+  }
+
+  function change(id, delta) {
+    cart[id] = Math.max(0, (cart[id] || 0) + delta);
+    render();
+  }
+
+  function total() {
+    return items.reduce((sum, item) => {
+      return sum + (cart[item.id] || 0) * item.price;
+    }, 0);
   }
 
   function checkout() {
-    if (cart.length === 0) {
+    const phone = document.getElementById("phone").value;
+    const address = document.getElementById("address").value;
+
+    if (!phone || !address) {
+      tg.showAlert("Введите телефон и адрес");
+      return;
+    }
+
+    if (total() === 0) {
       tg.showAlert("Корзина пуста");
       return;
     }
-    tg.sendData(JSON.stringify(cart));
+
+    const order = items
+      .filter(item => cart[item.id])
+      .map(item => ({
+        name: item.name,
+        kg: cart[item.id],
+        price: item.price,
+        sum: cart[item.id] * item.price
+      }));
+
+    tg.sendData(JSON.stringify({
+      phone,
+      address,
+      order,
+      total: total()
+    }));
   }
+
+  render();
 </script>
 
 </body>
