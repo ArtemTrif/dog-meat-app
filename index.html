@@ -11,7 +11,7 @@
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
       background: #f2f2f7;
-      padding-bottom: 120px;
+      padding-bottom: 130px;
     }
 
     header {
@@ -57,7 +57,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin: 10px 0;
+      margin-top: 10px;
     }
 
     .qty button {
@@ -105,7 +105,7 @@
 </head>
 <body>
 
-<header>🐶 Магазин мяса</header>
+<header>🐶 Магазин мяса для собак</header>
 
 <div class="products" id="products"></div>
 
@@ -117,10 +117,59 @@
 <div class="checkout">
   <button onclick="checkout()">✅ Оформить заказ (<span id="total">0</span> ₽)</button>
 </div>
+
 <script>
+  const tg = window.Telegram.WebApp;
+  tg.expand();
+
+  const items = [
+    { id: "beef", name: "Говядина", price: 500, img: "https://i.imgur.com/8Q1ZQZQ.jpg" },
+    { id: "heart", name: "Сердце", price: 300, img: "https://i.imgur.com/F7yFQpP.jpg" },
+    { id: "liver", name: "Печень", price: 180, img: "https://i.imgur.com/HRn6Fz5.jpg" }
+  ];
+
+  const cart = {};
+
+  function render() {
+    const root = document.getElementById("products");
+    root.innerHTML = "";
+
+    items.forEach(item => {
+      const qty = cart[item.id] || 0;
+
+      root.innerHTML += `
+        <div class="card">
+          <img src="${item.img}">
+          <div class="card-content">
+            <div class="title">${item.name}</div>
+            <div class="price">${item.price} ₽ / кг</div>
+            <div class="qty">
+              <button onclick="change('${item.id}', -1)">−</button>
+              <strong>${qty} кг</strong>
+              <button onclick="change('${item.id}', 1)">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById("total").innerText = total();
+  }
+
+  function change(id, delta) {
+    cart[id] = Math.max(0, (cart[id] || 0) + delta);
+    render();
+  }
+
+  function total() {
+    return items.reduce((sum, item) => {
+      return sum + (cart[item.id] || 0) * item.price;
+    }, 0);
+  }
+
   function checkout() {
-    const phone = document.getElementById("phone").value;
-    const address = document.getElementById("address").value;
+    const phone = document.getElementById("phone").value.trim();
+    const address = document.getElementById("address").value.trim();
 
     if (!phone || !address) {
       tg.showAlert("Введите телефон и адрес");
@@ -141,7 +190,6 @@
         sum: cart[item.id] * item.price
       }));
 
-    // отправляем заказ боту
     tg.sendData(JSON.stringify({
       phone,
       address,
@@ -149,14 +197,14 @@
       total: total()
     }));
 
-    // показываем сообщение пользователю
     tg.showAlert("✅ Спасибо за заказ!\nМы свяжемся с вами в ближайшее время.");
 
-    // закрываем mini app через 1 секунду
     setTimeout(() => {
       tg.close();
     }, 1000);
   }
+
+  render();
 </script>
 
 </body>
