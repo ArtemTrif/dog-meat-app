@@ -43,6 +43,7 @@ header { padding:16px; font-size:22px; font-weight:700; }
 
 <script>
 const tg = window.Telegram.WebApp;
+tg.ready();      // ❗ ВОТ ЭТОГО НЕ ХВАТАЛО
 tg.expand();
 
 let filter = "all";
