@@ -1,210 +1,102 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Мясо для собак</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta charset="UTF-8">
+<title>Мясо для собак</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-      background: #f2f2f7;
-      padding-bottom: 130px;
-    }
-
-    header {
-      padding: 16px;
-      font-size: 22px;
-      font-weight: 700;
-    }
-
-    .products {
-      padding: 16px;
-      display: grid;
-      gap: 16px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-    }
-
-    .card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-    }
-
-    .card-content {
-      padding: 14px;
-    }
-
-    .title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .price {
-      margin: 6px 0;
-      color: #666;
-    }
-
-    .qty {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .qty button {
-      width: 36px;
-      height: 36px;
-      border: none;
-      border-radius: 8px;
-      background: #e5e5ea;
-      font-size: 20px;
-    }
-
-    .form {
-      padding: 16px;
-    }
-
-    .form input {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 15px;
-    }
-
-    .checkout {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      padding: 14px;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-    }
-
-    .checkout button {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      border: none;
-      border-radius: 12px;
-      background: #34c759;
-      color: #fff;
-    }
-  </style>
+<style>
+body { margin:0; font-family:Arial; background:#f2f2f7; padding-bottom:120px; }
+header { padding:16px; font-size:22px; font-weight:700; }
+.products { padding:16px; display:grid; gap:16px; }
+.card { background:#fff; border-radius:16px; overflow:hidden; }
+.card img { width:100%; height:180px; object-fit:cover; }
+.card-content { padding:14px; }
+.qty { display:flex; gap:10px; margin-top:10px; }
+.qty button { width:36px; height:36px; border:none; border-radius:8px; }
+.checkout { position:fixed; bottom:0; left:0; right:0; background:#fff; padding:14px; }
+.checkout button { width:100%; padding:14px; font-size:16px; background:#34c759; color:#fff; border:none; border-radius:12px; }
+</style>
 </head>
+
 <body>
 
 <header>🐶 Магазин мяса для собак</header>
 
+<div style="padding:16px; display:flex; gap:10px;">
+  <button onclick="filter='all'; render()">Все</button>
+  <button onclick="filter='meat'; render()">🥩 Мясо</button>
+  <button onclick="filter='sub'; render()">🧠 Субпродукты</button>
+</div>
+
 <div class="products" id="products"></div>
 
-<div class="form">
-  <input id="phone" placeholder="📞 Телефон">
-  <input id="address" placeholder="📍 Адрес доставки">
+<div style="padding:16px">
+  <input id="phone" placeholder="📞 Телефон" style="width:100%; padding:12px; margin-bottom:8px;">
+  <input id="address" placeholder="📍 Адрес" style="width:100%; padding:12px;">
 </div>
 
 <div class="checkout">
-  <button onclick="checkout()">✅ Оформить заказ (<span id="total">0</span> ₽)</button>
+  <button onclick="checkout()">Оформить заказ (<span id="total">0</span> ₽)</button>
 </div>
 
 <script>
-  const tg = window.Telegram.WebApp;
-  tg.expand();
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-  const items = [
-    { id: "beef", name: "Говядина", price: 500, img: "https://i.imgur.com/8Q1ZQZQ.jpg" },
-    { id: "heart", name: "Сердце", price: 300, img: "https://i.imgur.com/F7yFQpP.jpg" },
-    { id: "liver", name: "Печень", price: 180, img: "https://i.imgur.com/HRn6Fz5.jpg" }
-  ];
+let filter = "all";
+const cart = {};
 
-  const cart = {};
+const items = [
+  { id:"beef", name:"Говядина", price:500, category:"meat", img:"https://i.imgur.com/8Q1ZQZQ.jpg" },
+  { id:"chicken", name:"Курица", price:260, category:"meat", img:"https://i.imgur.com/4n2k7eP.jpg" },
+  { id:"heart", name:"Сердце", price:300, category:"sub", img:"https://i.imgur.com/F7yFQpP.jpg" },
+  { id:"liver", name:"Печень", price:180, category:"sub", img:"https://i.imgur.com/HRn6Fz5.jpg" }
+];
 
-  function render() {
-    const root = document.getElementById("products");
-    root.innerHTML = "";
-
-    items.forEach(item => {
-      const qty = cart[item.id] || 0;
-
+function render(){
+  const root = document.getElementById("products");
+  root.innerHTML = "";
+  items.filter(i => filter==="all" || i.category===filter)
+    .forEach(i=>{
+      const q = cart[i.id]||0;
       root.innerHTML += `
         <div class="card">
-          <img src="${item.img}">
+          <img src="${i.img}">
           <div class="card-content">
-            <div class="title">${item.name}</div>
-            <div class="price">${item.price} ₽ / кг</div>
+            <b>${i.name}</b><br>${i.price} ₽ / кг
             <div class="qty">
-              <button onclick="change('${item.id}', -1)">−</button>
-              <strong>${qty} кг</strong>
-              <button onclick="change('${item.id}', 1)">+</button>
+              <button onclick="add('${i.id}',-1)">−</button>
+              <b>${q} кг</b>
+              <button onclick="add('${i.id}',1)">+</button>
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
     });
+  document.getElementById("total").innerText = total();
+}
 
-    document.getElementById("total").innerText = total();
-  }
+function add(id,d){ cart[id]=Math.max(0,(cart[id]||0)+d); render(); }
+function total(){ return items.reduce((s,i)=>s+(cart[i.id]||0)*i.price,0); }
 
-  function change(id, delta) {
-    cart[id] = Math.max(0, (cart[id] || 0) + delta);
-    render();
-  }
+function checkout(){
+  const phone = phoneInput.value.trim();
+  const address = addressInput.value.trim();
+  if(!phone||!address||!total()) return tg.showAlert("Заполните данные");
 
-  function total() {
-    return items.reduce((sum, item) => {
-      return sum + (cart[item.id] || 0) * item.price;
-    }, 0);
-  }
+  const order = items.filter(i=>cart[i.id]).map(i=>({
+    name:i.name, kg:cart[i.id], price:i.price, sum:cart[i.id]*i.price
+  }));
 
-  function checkout() {
-    const phone = document.getElementById("phone").value.trim();
-    const address = document.getElementById("address").value.trim();
+  tg.sendData(JSON.stringify({ phone, address, order, total: total() }));
+  tg.showAlert("Спасибо! Мы свяжемся с вами.");
+  setTimeout(()=>tg.close(),800);
+}
 
-    if (!phone || !address) {
-      tg.showAlert("Введите телефон и адрес");
-      return;
-    }
-
-    if (total() === 0) {
-      tg.showAlert("Корзина пуста");
-      return;
-    }
-
-    const order = items
-      .filter(item => cart[item.id])
-      .map(item => ({
-        name: item.name,
-        kg: cart[item.id],
-        price: item.price,
-        sum: cart[item.id] * item.price
-      }));
-
-    tg.sendData(JSON.stringify({
-      phone,
-      address,
-      order,
-      total: total()
-    }));
-
-    tg.showAlert("✅ Спасибо за заказ!\nМы свяжемся с вами в ближайшее время.");
-
-    setTimeout(() => {
-      tg.close();
-    }, 1000);
-  }
-
-  render();
+const phoneInput = document.getElementById("phone");
+const addressInput = document.getElementById("address");
+render();
 </script>
 
 </body>
